@@ -1,1 +1,11 @@
+-- Load the main Lazy.nvim configuration file.
+--
+-- This tells Neovim to require:
+--   lua/config/lazy.lua
+--
+-- In Neovim, `require("config.lazy")` maps to:
+--   ~/.config/nvim/lua/config/lazy.lua
+--
+-- That file is responsible for setting up the plugin manager
+-- and loading all plugin specifications from your config.
 require("config.lazy")
