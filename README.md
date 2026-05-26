@@ -1,4 +1,18 @@
-###################################### README STARTS HERE ###############################################
+########################################## README STARTS HERE ###########################################
+
+
+VERSION INFORMATION
+----------------------------------------------------------------------------
+Neovim: 0.12+
+Plugin Manager: Lazy.nvim
+OS: Arch Linux
+Shell: bash
+Terminal: Kitty
+Font: Meslo Nerd Font
+----------------------------------------------------------------------------
+
+
+#########################################################################################################
 
 
 PROJECT STRUCTURE
@@ -18,6 +32,8 @@ PROJECT STRUCTURE
 │       ├── lualine.lua
 │       ├── neo-tree.lua
 │       ├── none-ls.lua
+│       ├── nvim-test.lua
+│       ├── nvim-tmux-navigator.lua
 │       ├── oil.lua
 │       ├── telescope.lua
 │       └── treesitter.lua
@@ -67,11 +83,12 @@ loads our Lazy.nvim setup from:
 So our startup flow is:
 
 	init.lua
-	  → lua/config/lazy.lua
-	    → lua/plugins/*.lua
+	  → require("config.lazy")		[~.config/nvim/lua/config/lazy.lua]
+	    → require("lazy").setup(...)	[Main plugin manager initialization]
+	      → lua/plugins/*.lua		[~.config/nvim/lua/plugins/*.lua]
 
-This keeps init.lua clean and delegates plugin loading/configuration to the 
-proper modular files.
+This keeps init.lua clean and delegates plugin loading and configuration
+to Lazy.nvim and the modular plugin files under lua/plugins/.
 
 
 #########################################################################################################
@@ -211,7 +228,7 @@ So files will not open with hidden/collapsed code.
 
 These options let us keep folding support available without the annoying behavior of opening files with collapsed code.
 
-So later, if we enable Treesitter folding, we can still manually fold code with:
+So later, if we have Treesitter folding enabled, we can still manually fold code with:
 
 - Key -		------- Action -------
 zc		close fold
@@ -729,6 +746,12 @@ Configures Python debugging through debugpy.
 
 The "python3" argument tells nvim-dap-python which Python executable to use.
 
+NOTE:
+
+The "python-debugpy" package provides the Debug Adapter Protocol backend used by nvim-dap-python.
+
+Without debugpy installed, Python debugging sessions cannot start because nvim-dap-python would have no debugger backend to communicate with.
+
 ------------------------------------------------------------------------
 
 Pytest runner
@@ -843,11 +866,11 @@ This adds full Git command integration inside Neovim.
 
 It gives us commands like:
 
-	:Git (or just ":G", which is a shorthand for ":Git")
-	:Git add (e.g. :Git add . or :G add .)
+	:Git (opens Fugitive status window)
+	:Git add (e.g. :Git add .)
 	:Git commit
 	:Git push
-	:Git status
+	:Git status (runs the "git status" command)
 	:Git blame
 	:Gdiffsplit
 	:Gwrite
@@ -856,7 +879,9 @@ It gives us commands like:
 
 IMPORTANT DISTINCTION:
 
-The ":G" shorthand applies only to Git subcommands passed through Fugitive and NOT to Fugitive's own standalone commands.
+Instead of ":Git add ." we can run ":G add ."
+
+The ":G" is a shorthand for ":Git", but applies only to Git subcommands passed through Fugitive and NOT to Fugitive's own standalone commands.
 
 For example:
 
@@ -1092,7 +1117,7 @@ This means:
 
 ------- Setting -------		-------------- Effect --------------
 visible = true			filtered items can be shown/toggled
-hide_dotfiles = false		dotfiles are visible       
+hide_dotfiles = false		dotfiles are visible
 hide_gitignored = true		Git-ignored files stay hidden
 
 ---------------------------------------------------------------------------------------------------------
@@ -1270,6 +1295,261 @@ Because none-ls registers formatters as LSP sources, they work seamlessly throug
 	buffer = bufnr
 
 Restricts the formatting mapping to buffers where none-ls is attached.
+
+
+#########################################################################################################
+
+
+~/.config/nvim/lua/plugins/nvim-test.lua
+
+Segment-by-segment analysis
+
+---------------------------------------------------------------------------------------------------------
+
+1. Plugin Declaration
+
+	"vim-test/vim-test"
+
+Installs the vim-test plugin.
+
+This plugin provides a unified testing interface for many programming languages and frameworks.
+
+Examples:
+
+- Language -	- Framework - 
+Python		pytest
+Go		go test
+Ruby		rspec
+PHP		phpunit
+
+The same commands work regardless of language.
+
+---------------------------------------------------------------------------------------------------------
+
+2. Dependency
+
+	"preservim/vimux"
+
+Installs Vimux.
+
+Vimux integrates Neovim with tmux and allows commands to be sent to tmux panes.
+
+In our setup:
+
+Neovim
+    ↓
+vim-test
+    ↓
+Vimux
+    ↓
+tmux pane
+
+Test output appears in tmux instead of inside Neovim.
+
+---------------------------------------------------------------------------------------------------------
+
+3. Test Strategy
+
+	vim.g["test#strategy"] = "vimux"
+
+Configures the execution strategy used by vim-test.
+
+Equivalent Vimscript:
+
+	let test#strategy = 'vimux'
+
+This tells vim-test to send test commands to Vimux.
+
+Since Vimux is connected to tmux, test output appears in a tmux pane.
+
+---------------------------------------------------------------------------------------------------------
+
+4. Run Nearest Test
+
+	<leader>tn
+
+Runs ":TestNearest"
+
+Executes the test nearest to the cursor.
+
+Example:
+
+	def test_login():
+	    pass
+
+	def test_logout():
+	    pass
+
+If the cursor is inside test_login(), only that test runs.
+
+---------------------------------------------------------------------------------------------------------
+
+5. Run Current File Tests
+
+	<leader>tf
+
+Runs ":TestFile"
+
+Executes all tests in the current file.
+
+---------------------------------------------------------------------------------------------------------
+
+6. Run Entire Test Suite
+
+	<leader>ta
+
+Runs ":TestSuite"
+
+Executes every test in the project.
+
+Equivalent to commands such as:
+
+	pytest
+OR
+
+	go test ./...
+
+depending on the project type.
+
+---------------------------------------------------------------------------------------------------------
+
+7. Run Last Test
+
+	<leader>tl
+
+Runs ":TestLast"
+
+Re-executes the most recently run test command.
+
+Useful when repeatedly fixing a failing test.
+
+---------------------------------------------------------------------------------------------------------
+
+8. Visit Test Output
+
+	<leader>tv
+
+Runs ":TestVisit"
+
+Moves focus to the tmux pane displaying the test output.
+
+This is especially useful when using Vimux because test results are displayed outside Neovim.
+
+---------------------------------------------------------------------------------------------------------
+
+9. Result
+
+After adding this plugin, our testing workflow becomes:
+
+-- Keymap --	-- Action --
+<leader>tn	Run nearest test
+<leader>tf	Run tests in current file
+<leader>ta	Run entire test suite
+<leader>tl	Re-run last test
+<leader>tv	Jump to test output
+
+Combined with tmux and Vimux, this gives us a very efficient workflow:
+
+Code in Neovim
+      ↓
+Run test
+      ↓
+vim-test
+      ↓
+Vimux
+      ↓
+tmux pane
+      ↓
+View results
+
+without ever leaving our editor environment.
+
+
+#########################################################################################################
+
+
+~/.config/nvim/lua/plugins/nvim-tmux-navigator.lua
+
+Segment-by-segment analysis
+
+---------------------------------------------------------------------------------------------------------
+
+1. Plugin Declaration
+
+	"christoomey/vim-tmux-navigator"
+
+Installs the vim-tmux-navigator plugin.
+
+This plugin integrates:
+
+  * Neovim window navigation
+  * tmux pane navigation
+
+into a single navigation system.
+
+---------------------------------------------------------------------------------------------------------
+
+2. Configuration Function
+
+	config = function()
+
+Runs after the plugin is loaded.
+
+This is where we define our custom navigation mappings.
+
+---------------------------------------------------------------------------------------------------------
+
+3. Left Navigation
+
+	<C-h>
+
+Runs ":TmuxNavigateLeft"
+
+---------------------------------------------------------------------------------------------------------
+
+4. Down Navigation
+
+	<C-j>
+
+Runs ":TmuxNavigateDown"
+
+---------------------------------------------------------------------------------------------------------
+
+5. Up Navigation
+
+	<C-k>
+
+Runs ":TmuxNavigateUp"
+
+---------------------------------------------------------------------------------------------------------
+
+6. Right Navigation
+
+	<C-l>
+
+Runs ":TmuxNavigateRight"
+
+---------------------------------------------------------------------------------------------------------
+
+7. Result
+
+With the plugin installed in:
+
+  * Neovim (Lazy.nvim)
+  * tmux (TPM)
+
+the following keys work seamlessly across both environments:
+
+Key	Action
+<C-h>	Move left
+<C-j>	Move down
+<C-k>	Move up
+<C-l>	Move right
+
+The plugin first attempts to navigate between Neovim splits.
+If no split exists in the requested direction, the movement is forwarded to tmux.
+
+This creates a unified navigation experience where moving between Neovim splits and tmux panes feels like navigating a single workspace.
 
 
 #########################################################################################################
@@ -1744,8 +2024,11 @@ Creates the :Floaterminal command to toggle the terminal.
 
 Toggles the floating terminal in both normal and terminal mode.
 
+
 ---------------------------------------------------------------------------------------------------------
+#########################################################################################################
 ---------------------------------------------------------------------------------------------------------
+
 
 -------------------------------------- Neovim Workflow Cheatsheet ---------------------------------------
 
@@ -1782,9 +2065,43 @@ DEBUGGING (DAP)
 
 ----------------------------------------------------------------------------
 
+TESTING (vim-test)
+----------------------------------------------------------------------------
+<leader>tn	Run nearest test
+<leader>tf	Run all tests in current file
+<leader>ta	Run entire test suite
+<leader>tl	Run last executed test again
+<leader>tv	Visit test output pane
+
+----------------------------------------------------------------------------
+
 TERMINAL
 ----------------------------------------------------------------------------
 <Space>tt	Toggles the floating terminal in both normal and terminal mode
+
+----------------------------------------------------------------------------
+
+MOVE BETWEEN TMUX PANES & NEOVIM WINDOW SPLITS
+----------------------------------------------------------------------------
+<C-h>		Go to left pane/window
+<C-j>		Go to lower pane/window
+<C-k>		Go to upper pane/window
+<C-l>		Go to right pane/window
+
+----------------------------------------------------------------------------
+
+USEFUL COMMANDS
+----------------------------------------------------------------------------
+:Lazy		Open plugin manager
+:Mason		Open Mason package manager
+:MasonUpdate	Update registries
+:LspInfo	Show active LSP information
+:checkhealth	Run Neovim health checks
+:TSUpdate	Update Treesitter parsers
+:Floaterminal	Toggle floating terminal
+:Git		Open Fugitive status window
+
+----------------------------------------------------------------------------
 
 
 ########################################### README ENDS HERE ############################################
