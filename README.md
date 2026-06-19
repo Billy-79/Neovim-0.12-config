@@ -48,8 +48,7 @@ Required packages that should be installed for Arch Linux
 
 Execute the following command: 
 
-	sudo pacman -S --needed base-devel npm nodejs php git curl clang jdk-openjdk tar gzip delve go	
-	python-debugpy ripgrep rubygems ruby rustup zig fzf unzip fd tree-sitter-cli
+	sudo pacman -S --needed base-devel npm nodejs php git curl clang jdk-openjdk tar gzip delve go python-debugpy ripgrep rubygems ruby rustup zig fzf unzip fd tree-sitter-cli
 
 Next, initialize Rust by executing:
 
